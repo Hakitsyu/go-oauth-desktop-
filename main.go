@@ -6,10 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -88,6 +91,7 @@ func (o *OAuthAuthenticator) Authenticate() (string, error) {
 	}
 
 	fmt.Printf("Opening browser to %s\n", authorizationUrl)
+	OpenBrowser(authorizationUrl)
 
 	accessToken, err := o.getAccessToken(
 		redirectUri,
@@ -265,4 +269,21 @@ func (l *HttpListener) Close(ctx context.Context) error {
 	l.serverPort = 0
 
 	return nil
+}
+
+func OpenBrowser(url string) error {
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	default:
+		return errors.New("Unsupported platform")
+	}
+
+	return cmd.Start()
 }
